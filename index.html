@@ -507,11 +507,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
     <button onclick="doLogin()" style="background:linear-gradient(135deg,#1e3a5f,#4a90c4);color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%">
       🚀 Login کریں
     </button>
-    <button onclick="skipPin()" style="background:transparent;color:#4a6a8a;border:1px solid #2a4060;padding:8px;border-radius:8px;font-size:12px;cursor:pointer">
-      Demo Mode (بغیر Login)
-    </button>
-  </div>
-  <div id="loginFailMsg" style="color:#f87171;font-size:11px;margin-top:8px;text-align:center"></div>
+    <div id="loginFailMsg" style="color:#f87171;font-size:11px;margin-top:8px;text-align:center"></div>
 </div>
 
 <!-- STORAGE WARNING -->
@@ -525,7 +521,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v8.0 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v8.2 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -562,6 +558,25 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <option value="بیرون جامعہ">📘 بیرون جامعہ سے چھپی ہوئی کتاب</option>
 </select>
 </div><div class="fg"><label class="fl">Author / Compiler مصنف</label><input id="bAuthor" placeholder="e.g. Mufti Rasheed Ahmed..."></div></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">فن / Subject موضوع</label>
+          <select id="bSubject" style="border:1px solid #d1d5db;padding:7px 10px;font-size:13px;outline:none;background:var(--card);color:var(--navy);width:100%">
+            <option value="">-- فن منتخب کریں --</option>
+            <option>نصاب</option>
+            <option>عربی</option>
+            <option>اردو</option>
+            <option>اسلامیات</option>
+            <option>حدیث</option>
+            <option>فقہ</option>
+            <option>تفسیر</option>
+            <option>سیرت</option>
+            <option>عقیدہ</option>
+            <option>تصوف</option>
+            <option>تاریخ</option>
+            <option>دیگر</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div style="display:flex;gap:9px;margin-top:16px">
       <button class="btn bg" onclick="saveBook()">💾 Save Book</button>
@@ -967,7 +982,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   </div>
 </div>
     <div class="sb"><input placeholder="🔍 Search books..." oninput="searchCatalog(this.value)"></div>
-    <div id="catalogPrintArea"><div style="overflow-x:auto"><table><thead><tr><th>Book Name</th><th>Author/Compiler</th><th>Wholesale ₹</th><th>Retail ₹</th><th>Stock</th><th>Alert</th><th>Category</th><th class="np">Edit</th><th class="np">Delete</th></tr></thead><tbody id="catalogBody"></tbody></table></div></div>
+    <div id="catalogPrintArea"><div style="overflow-x:auto"><table><thead><tr><th>Book Name</th><th>Author/Compiler</th><th>فن/Subject</th><th>Wholesale ₹</th><th>Retail ₹</th><th>Stock</th><th>Alert</th><th>Category</th><th class="np">Edit</th><th class="np">Delete</th></tr></thead><tbody id="catalogBody"></tbody></table></div></div>
   </div>
 </div>
 
@@ -2041,14 +2056,14 @@ function delLedger(c,book){if(!confirm('Delete entry?'))return;LS.setInv(LS.inv(
 // ===== CATALOG =====
 function openBookModal(id){
   document.getElementById('editBookId').value=id||'';
-  if(id){const b=LS.books().find(x=>x.id==id)||{};document.getElementById('bName').value=b.name||'';document.getElementById('bWs').value=b.wholesale||'';document.getElementById('bRet').value=b.retail||'';document.getElementById('bStock').value=b.stock||'';document.getElementById('bAlert').value=b.alert||10;document.getElementById('bCat').value=b.category||'';document.getElementById('bAuthor').value=b.author||'';}
-  else{['bName','bWs','bRet','bStock','bCat','bAuthor'].forEach(x=>document.getElementById(x).value='');document.getElementById('bAlert').value=10;}
+  if(id){const b=LS.books().find(x=>x.id==id)||{};document.getElementById('bName').value=b.name||'';document.getElementById('bWs').value=b.wholesale||'';document.getElementById('bRet').value=b.retail||'';document.getElementById('bStock').value=b.stock||'';document.getElementById('bAlert').value=b.alert||10;document.getElementById('bCat').value=b.category||'';document.getElementById('bAuthor').value=b.author||'';document.getElementById('bSubject').value=b.subject||'';}
+  else{['bName','bWs','bRet','bStock','bCat','bAuthor','bSubject'].forEach(x=>document.getElementById(x).value='');document.getElementById('bAlert').value=10;}
   openModal('bookModal');
 }
 function saveBook(){
   const name=document.getElementById('bName').value.trim();if(!name){notify('Book name required','err');return}
   const id=document.getElementById('editBookId').value;
-  const book={id:id||Date.now(),name,wholesale:Number(document.getElementById('bWs').value)||0,retail:Number(document.getElementById('bRet').value)||0,stock:Number(document.getElementById('bStock').value)||0,alert:Number(document.getElementById('bAlert').value)||10,category:document.getElementById('bCat').value.trim(),author:document.getElementById('bAuthor').value.trim()};
+  const book={id:id||Date.now(),name,wholesale:Number(document.getElementById('bWs').value)||0,retail:Number(document.getElementById('bRet').value)||0,stock:Number(document.getElementById('bStock').value)||0,alert:Number(document.getElementById('bAlert').value)||10,category:document.getElementById('bCat').value.trim(),author:document.getElementById('bAuthor').value.trim(),subject:document.getElementById('bSubject').value.trim()};
   let bks=LS.books();if(id)bks=bks.map(b=>b.id==id?book:b);else bks.push(book);LS.setBooks(bks);
   if(CLOUD.isConnected()) CLOUD.saveBook(book).then(()=>setSyncStatus('ok'));
   closeModal('bookModal');loadCatalog();addLog('Book '+(id?'Updated':'Added'),name);notify('✅ Book saved!');
@@ -2056,7 +2071,10 @@ function saveBook(){
 function loadCatalog(){
   const books=LS.books();const tbody=document.getElementById('catalogBody');if(!tbody)return;tbody.innerHTML='';
   if(!books.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:18px;color:#6b7280">No books yet. Click "+ Add Book".</td></tr>';return}
-  books.forEach(b=>{const low=(b.stock||0)<=(b.alert||10);const row=tbody.insertRow();const catBadge=b.category==='جامعہ اکل کوا'?`<span style="background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📗 جامعہ</span>`:b.category==='بیرون جامعہ'?`<span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📘 بیرون</span>`:`<span style="color:#6b7280;font-size:11px">${b.category||'—'}</span>`;row.innerHTML=`<td style="text-align:left;padding-left:11px"><strong>${b.name}</strong></td><td style="text-align:left;font-size:12px">${b.author||'—'}</td><td>₹${b.wholesale||0}</td><td>₹${b.retail||0}</td><td>${low?`<span class="tag tag-red">⚠️ ${b.stock}</span>`:`<span class="tag tag-green">${b.stock}</span>`}</td><td>${b.alert||10}</td><td>${catBadge}</td><td class="np"><button class="btn bo bsm" onclick="openBookModal(${b.id})">✏️</button></td><td class="np"><button class="btn br bsm" onclick="delBook(${b.id})">🗑️</button></td>`});
+  books.forEach(b=>{const low=(b.stock||0)<=(b.alert||10);const row=tbody.insertRow();
+    const catBadge=b.category==='جامعہ اکل کوا'?`<span style="background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📗 جامعہ</span>`:b.category==='بیرون جامعہ'?`<span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📘 بیرون</span>`:`<span style="color:#6b7280;font-size:11px">${b.category||'—'}</span>`;
+    const subBadge=b.subject?`<span style="background:#fef3c7;color:#b45309;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📚 ${b.subject}</span>`:'<span style="color:#6b7280;font-size:11px">—</span>';
+    row.innerHTML=`<td style="text-align:left;padding-left:11px"><strong>${b.name}</strong></td><td style="text-align:left;font-size:12px">${b.author||'—'}</td><td>${subBadge}</td><td>₹${b.wholesale||0}</td><td>₹${b.retail||0}</td><td>${low?`<span class="tag tag-red">⚠️ ${b.stock}</span>`:`<span class="tag tag-green">${b.stock}</span>`}</td><td>${b.alert||10}</td><td>${catBadge}</td><td class="np"><button class="btn bo bsm" onclick="openBookModal(${b.id})">✏️</button></td><td class="np"><button class="btn br bsm" onclick="delBook(${b.id})">🗑️</button></td>`});
 }
 function delBook(id){if(!confirm('Delete?'))return;LS.setBooks(LS.books().filter(b=>b.id!=id));if(CLOUD.isConnected())CLOUD.deleteBook(id).then(()=>setSyncStatus('ok'));loadCatalog();notify('Deleted')}
 function searchCatalog(t){t=t.toLowerCase();document.querySelectorAll('#catalogBody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(t)?'':'none')}
@@ -2904,14 +2922,17 @@ function exportCSV(){
   const list=LS.inv();
   if(!list.length){notify('No invoices','warn');return}
   // Two sheets: invoice summary + item-wise details
-  let csv='Invoice No,Date,Customer,Address,Mobile,Books Subtotal,Transport,Packing,Discount,Grand Total,Payment,Paid,Remaining\n';
-  list.forEach(i=>{csv+=`${i.number},${i.date},"${i.customer}","${i.address||''}","${i.mobile||''}",${(i.items||[]).reduce((a,x)=>a+x.total,0)},${i.transport||0},${i.packing||0},${i.discount||0},${i.total},${i.payment},${i.paidAmount||0},${i.remaining||0}\n`});
-  csv+='\n\nITEM-WISE DETAILS\nInvoice No,Date,Customer,Book Name,Qty,Wholesale Rate,Retail Rate,Row Total\n';
-  list.forEach(i=>{(i.items||[]).forEach(it=>{csv+=`${i.number},${i.date},"${i.customer}","${it.book}",${it.qty},${it.wholesale||0},${it.retail||0},${it.total}\n`})});
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  let csv='Invoice No,Date,Customer,Address,Mobile,Category,Books Subtotal,Postage,Packing,Discount,Grand Total,Payment,Paid,Remaining\n';
+  list.forEach(i=>{csv+=`${i.number},${i.date},"${i.customer}","${i.address||''}","${i.mobile||''}","${i.invCategory||''}",${(i.items||[]).reduce((a,x)=>a+x.total,0)},${i.transport||0},${i.packing||0},${i.discount||0},${i.total},${i.payment},${i.paidAmount||0},${i.remaining||0}\n`});
+  csv+='\n\nITEM-WISE DETAILS\nInvoice No,Date,Customer,Book Name,Subject/فن,Qty,Wholesale Rate,Retail Rate,Row Total\n';
+  const booksMap={};LS.books().forEach(b=>booksMap[b.name]=b);
+  list.forEach(i=>{(i.items||[]).forEach(it=>{const bk=booksMap[it.book]||{};csv+=`${i.number},${i.date},"${i.customer}","${it.book}","${bk.subject||''}",${it.qty},${it.wholesale||0},${it.retail||0},${it.total}\n`})});
+  csv+='\n\nBOOK CATALOG\nBook Name,Author,Subject/فن,Category,Wholesale,Retail,Stock\n';
+  LS.books().forEach(b=>{csv+=`"${b.name}","${b.author||''}","${b.subject||''}","${b.category||''}",${b.wholesale||0},${b.retail||0},${b.stock||0}\n`});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='shahrah_ilm_'+new Date().toISOString().split('T')[0]+'.csv';
-  a.click();notify('✅ Exported with item details!')
+  a.click();notify('✅ CSV Export مکمل!')
 }
 function clearAll(){if(!confirm('Delete ALL data permanently?'))return;if(!confirm('Final confirmation!'))return;
   localStorage.removeItem('invoices');localStorage.removeItem('catalog');
