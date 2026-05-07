@@ -507,7 +507,11 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
     <button onclick="doLogin()" style="background:linear-gradient(135deg,#1e3a5f,#4a90c4);color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%">
       🚀 Login کریں
     </button>
-    <div id="loginFailMsg" style="color:#f87171;font-size:11px;margin-top:8px;text-align:center"></div>
+    <button onclick="skipPin()" style="background:transparent;color:#4a6a8a;border:1px solid #2a4060;padding:8px;border-radius:8px;font-size:12px;cursor:pointer">
+      Demo Mode (بغیر Login)
+    </button>
+  </div>
+  <div id="loginFailMsg" style="color:#f87171;font-size:11px;margin-top:8px;text-align:center"></div>
 </div>
 
 <!-- STORAGE WARNING -->
@@ -521,7 +525,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v8.2 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v8.1 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -2922,17 +2926,14 @@ function exportCSV(){
   const list=LS.inv();
   if(!list.length){notify('No invoices','warn');return}
   // Two sheets: invoice summary + item-wise details
-  let csv='Invoice No,Date,Customer,Address,Mobile,Category,Books Subtotal,Postage,Packing,Discount,Grand Total,Payment,Paid,Remaining\n';
-  list.forEach(i=>{csv+=`${i.number},${i.date},"${i.customer}","${i.address||''}","${i.mobile||''}","${i.invCategory||''}",${(i.items||[]).reduce((a,x)=>a+x.total,0)},${i.transport||0},${i.packing||0},${i.discount||0},${i.total},${i.payment},${i.paidAmount||0},${i.remaining||0}\n`});
-  csv+='\n\nITEM-WISE DETAILS\nInvoice No,Date,Customer,Book Name,Subject/فن,Qty,Wholesale Rate,Retail Rate,Row Total\n';
-  const booksMap={};LS.books().forEach(b=>booksMap[b.name]=b);
-  list.forEach(i=>{(i.items||[]).forEach(it=>{const bk=booksMap[it.book]||{};csv+=`${i.number},${i.date},"${i.customer}","${it.book}","${bk.subject||''}",${it.qty},${it.wholesale||0},${it.retail||0},${it.total}\n`})});
-  csv+='\n\nBOOK CATALOG\nBook Name,Author,Subject/فن,Category,Wholesale,Retail,Stock\n';
-  LS.books().forEach(b=>{csv+=`"${b.name}","${b.author||''}","${b.subject||''}","${b.category||''}",${b.wholesale||0},${b.retail||0},${b.stock||0}\n`});
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  let csv='Invoice No,Date,Customer,Address,Mobile,Books Subtotal,Transport,Packing,Discount,Grand Total,Payment,Paid,Remaining\n';
+  list.forEach(i=>{csv+=`${i.number},${i.date},"${i.customer}","${i.address||''}","${i.mobile||''}",${(i.items||[]).reduce((a,x)=>a+x.total,0)},${i.transport||0},${i.packing||0},${i.discount||0},${i.total},${i.payment},${i.paidAmount||0},${i.remaining||0}\n`});
+  csv+='\n\nITEM-WISE DETAILS\nInvoice No,Date,Customer,Book Name,Qty,Wholesale Rate,Retail Rate,Row Total\n';
+  list.forEach(i=>{(i.items||[]).forEach(it=>{csv+=`${i.number},${i.date},"${i.customer}","${it.book}",${it.qty},${it.wholesale||0},${it.retail||0},${it.total}\n`})});
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='shahrah_ilm_'+new Date().toISOString().split('T')[0]+'.csv';
-  a.click();notify('✅ CSV Export مکمل!')
+  a.click();notify('✅ Exported with item details!')
 }
 function clearAll(){if(!confirm('Delete ALL data permanently?'))return;if(!confirm('Final confirmation!'))return;
   localStorage.removeItem('invoices');localStorage.removeItem('catalog');
