@@ -507,9 +507,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
     <button onclick="doLogin()" style="background:linear-gradient(135deg,#1e3a5f,#4a90c4);color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%">
       🚀 Login کریں
     </button>
-    <button onclick="skipPin()" style="background:transparent;color:#4a6a8a;border:1px solid #2a4060;padding:8px;border-radius:8px;font-size:12px;cursor:pointer">
-      Demo Mode (بغیر Login)
-    </button>
+
   </div>
   <div id="loginFailMsg" style="color:#f87171;font-size:11px;margin-top:8px;text-align:center"></div>
 </div>
@@ -525,7 +523,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v8.1 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.1 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -1261,6 +1259,7 @@ function doLogin(){
     loginFailCount=0;
     document.getElementById('loginMsg').textContent='';
     unlock();
+    if(!window._appInited){window._appInited=true;setTimeout(initApp,50);}
   } else {
     loginFailCount++;
     if(loginFailCount>=5){
@@ -1304,15 +1303,41 @@ function showTabById(id){
     if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes(id)) t.classList.add('active');
   });
 }
-function unlock(){document.getElementById('lockScreen').style.display='none';sessionStorage.setItem('u','1')}
+function unlock(){
+  document.getElementById('lockScreen').style.display='none';
+  sessionStorage.setItem('u','1');
+  window._unlocked=true;
+}
 function lockApp(){
   document.getElementById('loginUser').value='';
   document.getElementById('loginPass').value='';
   document.getElementById('loginMsg').textContent='';
   document.getElementById('lockScreen').style.display='flex';
 }
-function skipPin(){localStorage.setItem('skipLogin','1');unlock()}
-if(sessionStorage.getItem('u')==='1'||localStorage.getItem('skipLogin')==='1')unlock();
+function skipPin(){unlock()}
+localStorage.removeItem('skipLogin');
+if(sessionStorage.getItem('u')==='1'){unlock();}
+
+window.addEventListener('load', function(){
+  restoreBranding();
+  if(window._unlocked){
+    initApp();
+  } else {
+    // صرف invoice number اور date set کریں بغیر data load کیے
+    const el=document.getElementById('invoiceNo');
+    if(el&&!el.value){
+      const lastNum=Number(localStorage.getItem('invCounter')||0);
+      el.value='SEI-'+String(lastNum+1).padStart(4,'0');
+    }
+    const d=document.getElementById('date');
+    if(d&&!d.value)d.value=new Date().toISOString().split('T')[0];
+  }
+  // Scroll to top button
+  window.addEventListener('scroll',function(){
+    const btn=document.getElementById('scrollTopBtn');
+    if(btn)btn.style.display=window.scrollY>300?'flex':'none';
+  });
+});
 
 // ===== CLOUD API =====
 const CLOUD = {
@@ -1670,32 +1695,27 @@ let curEdit=null;
 function genNo(inc=true){let c=Number(localStorage.getItem('invCounter')||0);if(inc)c++;localStorage.setItem('invCounter',c);return 'SEI-'+String(c).padStart(4,'0')}
 
 // ===== INIT =====
-(function(){
-  restoreBranding();
-  // Cloud status
-  if(CLOUD.isConnected()){
-    setSyncStatus('ok');
-    const badge=document.getElementById('cloudConnectedBadge');
-    if(badge)badge.style.display='inline';
-  }
+function initApp(){
+  window._appInited=true;
+  try{
+    if(typeof CLOUD !== 'undefined' && CLOUD.isConnected()){
+      setSyncStatus('ok');
+      const badge=document.getElementById('cloudConnectedBadge');
+      if(badge)badge.style.display='inline';
+    }
+  }catch(e){}
   const el=document.getElementById('invoiceNo');
-  if(!el.value){
-    const saved=LS.inv();
-    const lastNum=Number(localStorage.getItem('invCounter')||0);
-    if(lastNum===0&&saved.length===0){el.value=genNo(true);}
-    else{el.value='SEI-'+String(lastNum+1).padStart(4,'0');}
-  }
+  if(el&&!el.value){const saved=LS.inv();const lastNum=Number(localStorage.getItem('invCounter')||0);if(lastNum===0&&saved.length===0){el.value=genNo(true);}else{el.value='SEI-'+String(lastNum+1).padStart(4,'0');}}
   const d=document.getElementById('date');
-  if(!d.value)d.value=new Date().toISOString().split('T')[0];
+  if(d&&!d.value)d.value=new Date().toISOString().split('T')[0];
   addRow();loadSaved();loadCredit();loadDash();calcTotal();
-  document.getElementById('dashDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  updateOverdueBadge();
-  checkStorage();
-  setTimeout(()=>addLog('System Started','Billing system v5.0 opened'),100);
-  // Pre-fill cloud URL input if saved
+  const dd=document.getElementById('dashDate');
+  if(dd)dd.textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  updateOverdueBadge();checkStorage();
+  setTimeout(()=>addLog('System Started','Billing system opened'),100);
   const savedUrl=localStorage.getItem('cloudUrl');
   if(savedUrl){const inp=document.getElementById('cloudUrl');if(inp)inp.value=savedUrl;}
-})();
+}
 
 // ===== CUSTOMER AC =====
 function custAC(val){
