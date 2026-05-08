@@ -523,7 +523,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.1 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.2 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -1354,8 +1354,8 @@ const CLOUD = {
         body: JSON.stringify({action, ...extra})
       });
       const json = await res.json();
-      setSyncStatus(json.ok ? 'ok' : 'err');
-      return json.ok ? json.data : null;
+      setSyncStatus(json.success ? 'ok' : 'err');
+      return json.success ? json : null;
     } catch(e) {
       setSyncStatus('err');
       console.error('Cloud error:', e);
@@ -1364,19 +1364,19 @@ const CLOUD = {
   },
 
   // Invoice
-  async saveInvoice(inv)     { return await this.call('saveInvoice', {data: inv}) },
+  async saveInvoice(inv)     { return await this.call('save', {sheet:'Invoices', key:inv.number, row:Object.values(inv)}) },
   async getInvoices(filter)  { return await this.call('getInvoices', {filter: filter||{}}) },
-  async deleteInvoice(num)   { return await this.call('deleteInvoice', {number: num}) },
+  async deleteInvoice(num)   { return await this.call('delete', {sheet:'Invoices', key:num}) },
 
   // Books
-  async saveBook(book)       { return await this.call('saveBook', {data: book}) },
+  async saveBook(book)       { return await this.call('save', {sheet:'Books', key:book.id, row:Object.values(book)}) },
   async getBooks()           { return await this.call('getBooks') },
-  async deleteBook(id)       { return await this.call('deleteBook', {id}) },
+  async deleteBook(id)       { return await this.call('delete', {sheet:'Books', key:id}) },
 
   // Customers
-  async saveCustomer(cust)   { return await this.call('saveCustomer', {data: cust}) },
+  async saveCustomer(cust)   { return await this.call('save', {sheet:'Customers', key:cust.id, row:Object.values(cust)}) },
   async getCustomers()       { return await this.call('getCustomers') },
-  async deleteCustomer(id)   { return await this.call('deleteCustomer', {id}) },
+  async deleteCustomer(id)   { return await this.call('delete', {sheet:'Customers', key:id}) },
 
   // Reports
   async getDashboard()       { return await this.call('getDashboard') },
@@ -1421,8 +1421,8 @@ async function testCloudConnection() {
   try {
     const res = await fetch(url);
     const json = await res.json();
-    if (json.ok && json.app === 'Shahrah-e-Ilm') {
-      el.textContent = '✅ Connected! Version: ' + json.version; el.style.color = '#2e7d52';
+    if (json.success) {
+      el.textContent = '✅ Connected! شاہراہِ علم Cloud Ready'; el.style.color = '#2e7d52';
     } else {
       el.textContent = '⚠️ Connected but unexpected response'; el.style.color = '#b7791f';
     }
@@ -1443,6 +1443,7 @@ function disconnectCloud() {
 // Full sync: download everything from cloud to localStorage (on first connect)
 async function syncFromCloud() {
   if (!CLOUD.isConnected()) return;
+  setSyncStatus('syncing');
   notify('☁️ Cloud سے ڈیٹا load ہو رہا ہے...');
   const [invoices, books, customers] = await Promise.all([
     CLOUD.getInvoices(),
