@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شاہراہِ علم — بلنگ سسٹم v9.3</title>
+<title>شاہراہِ علم — جامعہ اسلامیہ اشاعت العلوم، اکل کوا</title>
 <link href="https://fonts.googleapis.com/css2?family=Arial&family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ===== DESIGN SYSTEM ===== */
@@ -523,7 +523,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.3 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.4 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -1447,9 +1447,33 @@ async function syncFromCloud() {
   notify('☁️ Cloud سے ڈیٹا load ہو رہا ہے...');
   const result = await CLOUD.call('getAll');
   if (result && result.success) {
-    if (result.invoices && result.invoices.length) LS.setInv(result.invoices);
-    if (result.books && result.books.length) LS.setBooks(result.books);
-    if (result.customers && result.customers.length) LS.setCusts(result.customers);
+    if (Array.isArray(result.invoices) && result.invoices.length) {
+      // Filter out header rows and empty rows
+      const invData = result.invoices.filter(r => r[0] && r[0] !== 'number');
+      if(invData.length) LS.setInv(invData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
+        number:r[0], date:r[1], customer:r[2], address:r[3], mobile:r[4],
+        invCategory:r[5], payment:r[6], total:Number(r[7])||0,
+        transport:Number(r[8])||0, packing:Number(r[9])||0,
+        discount:Number(r[10])||0, paidAmount:Number(r[11])||0,
+        remaining:Number(r[12])||0, chequeNo:r[13]||'',
+        items:typeof r[14]==='string'?JSON.parse(r[14]||'[]'):r[14]||[],
+        payments:typeof r[15]==='string'?JSON.parse(r[15]||'[]'):r[15]||[]
+      }));
+    }
+    if (Array.isArray(result.books) && result.books.length) {
+      const bkData = result.books.filter(r => r[0] && r[0] !== 'id');
+      if(bkData.length) LS.setBooks(bkData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
+        id:r[0], name:r[1], author:r[2]||'', subject:r[3]||'',
+        category:r[4]||'', wholesale:Number(r[5])||0,
+        retail:Number(r[6])||0, stock:Number(r[7])||0, alert:Number(r[8])||10
+      }));
+    }
+    if (Array.isArray(result.customers) && result.customers.length) {
+      const cuData = result.customers.filter(r => r[0] && r[0] !== 'id');
+      if(cuData.length) LS.setCusts(cuData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
+        id:r[0], name:r[1], phone:r[2]||'', address:r[3]||'', notes:r[4]||''
+      }));
+    }
   }
   loadSaved(); loadDash(); loadCredit(); loadCatalog(); loadCustomers();
   updateOverdueBadge();
@@ -1657,12 +1681,12 @@ setInterval(tick,1000);tick();
 
 // ===== DATA =====
 const LS={
-  inv:()=>JSON.parse(localStorage.getItem('invoices')||'[]'),
-  setInv:d=>localStorage.setItem('invoices',JSON.stringify(d)),
-  books:()=>JSON.parse(localStorage.getItem('catalog')||'[]'),
-  setBooks:d=>localStorage.setItem('catalog',JSON.stringify(d)),
-  custs:()=>JSON.parse(localStorage.getItem('customers')||'[]'),
-  setCusts:d=>localStorage.setItem('customers',JSON.stringify(d))
+  inv:()=>{try{const d=JSON.parse(localStorage.getItem('invoices')||'[]');return Array.isArray(d)?d:[];}catch(e){return [];}},
+  setInv:d=>localStorage.setItem('invoices',JSON.stringify(Array.isArray(d)?d:[])),
+  books:()=>{try{const d=JSON.parse(localStorage.getItem('catalog')||'[]');return Array.isArray(d)?d:[];}catch(e){return [];}},
+  setBooks:d=>localStorage.setItem('catalog',JSON.stringify(Array.isArray(d)?d:[])),
+  custs:()=>{try{const d=JSON.parse(localStorage.getItem('customers')||'[]');return Array.isArray(d)?d:[];}catch(e){return [];}},
+  setCusts:d=>localStorage.setItem('customers',JSON.stringify(Array.isArray(d)?d:[]))
 };
 
 // ===== NOTIFY =====
