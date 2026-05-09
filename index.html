@@ -523,7 +523,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.4 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.6 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -559,24 +559,41 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <option value="جامعہ اکل کوا">📗 جامعہ اکل کوا سے چھپی ہوئی کتاب</option>
   <option value="بیرون جامعہ">📘 بیرون جامعہ سے چھپی ہوئی کتاب</option>
 </select>
-</div><div class="fg"><label class="fl">Author / Compiler مصنف</label><input id="bAuthor" placeholder="e.g. Mufti Rasheed Ahmed..."></div></div>
+</div><div class="fg"><label class="fl">Author / Compiler مصنف</label><input id="bAuthor" placeholder="مثلاً: مولانا رشید احمد..."></div></div>
       <div class="fr">
-        <div class="fg"><label class="fl">فن / Subject موضوع</label>
-          <select id="bSubject" style="border:1px solid #d1d5db;padding:7px 10px;font-size:13px;outline:none;background:var(--card);color:var(--navy);width:100%">
-            <option value="">-- فن منتخب کریں --</option>
-            <option>نصاب</option>
+        <div class="fg"><label class="fl">زبان</label>
+          <select id="bLang" style="border:1px solid #d1d5db;padding:7px 10px;font-size:13px;outline:none;background:var(--card);color:var(--navy);width:100%">
+            <option value="">-- زبان منتخب کریں --</option>
             <option>عربی</option>
             <option>اردو</option>
-            <option>اسلامیات</option>
-            <option>حدیث</option>
-            <option>فقہ</option>
-            <option>تفسیر</option>
-            <option>سیرت</option>
-            <option>عقیدہ</option>
-            <option>تصوف</option>
-            <option>تاریخ</option>
+            <option>فارسی</option>
+            <option>ہندی</option>
+            <option>انگریزی</option>
             <option>دیگر</option>
           </select>
+        </div>
+        <div class="fg"><label class="fl">فن / موضوع</label>
+          <select id="bSubject" onchange="checkCustomSubject(this)" style="border:1px solid #d1d5db;padding:7px 10px;font-size:13px;outline:none;background:var(--card);color:var(--navy);width:100%">
+            <option value="">-- فن منتخب کریں --</option>
+            <option>نصاب</option>
+            <option>تفسیر</option>
+            <option>حدیث</option>
+            <option>فقہ</option>
+            <option>عقیدہ</option>
+            <option>سیرت</option>
+            <option>تصوف</option>
+            <option>تاریخ</option>
+            <option>ادب</option>
+            <option>صرف و نحو</option>
+            <option>منطق و فلسفہ</option>
+            <option>اصول فقہ</option>
+            <option>اصول حدیث</option>
+            <option>اصول تفسیر</option>
+            <option>دعوت و تبلیغ</option>
+            <option>دیگر</option>
+            <option value="custom">✏️ خود لکھیں...</option>
+          </select>
+          <input id="bSubjectCustom" placeholder="فن خود لکھیں..." style="display:none;margin-top:6px;border:1px solid #d1d5db;padding:7px 10px;font-size:13px;outline:none;width:100%;border-radius:4px">
         </div>
       </div>
     </div>
@@ -984,7 +1001,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   </div>
 </div>
     <div class="sb"><input placeholder="🔍 Search books..." oninput="searchCatalog(this.value)"></div>
-    <div id="catalogPrintArea"><div style="overflow-x:auto"><table><thead><tr><th>Book Name</th><th>Author/Compiler</th><th>فن/Subject</th><th>Wholesale ₹</th><th>Retail ₹</th><th>Stock</th><th>Alert</th><th>Category</th><th class="np">Edit</th><th class="np">Delete</th></tr></thead><tbody id="catalogBody"></tbody></table></div></div>
+    <div id="catalogPrintArea"><div style="overflow-x:auto"><table><thead><tr><th>Book Name</th><th>Author/Compiler</th><th>زبان</th><th>فن/Subject</th><th>Wholesale ₹</th><th>Retail ₹</th><th>Stock</th><th>Alert</th><th>Category</th><th class="np">Edit</th><th class="np">Delete</th></tr></thead><tbody id="catalogBody"></tbody></table></div></div>
   </div>
 </div>
 
@@ -1369,7 +1386,7 @@ const CLOUD = {
   async deleteInvoice(num)   { return await this.call('delete', {sheet:'Invoices', key:num}) },
 
   // Books
-  async saveBook(book)       { return await this.call('save', {sheet:'Books', key:book.id, row:Object.values(book)}) },
+  async saveBook(book)       { return await this.call('save', {sheet:'Books', key:book.id, row:[book.id,book.name,book.author||'',book.lang||'',book.subject||'',book.category||'',book.wholesale||0,book.retail||0,book.stock||0,book.alert||10]}) },
   async getBooks()           { return await this.call('getAll') },
   async deleteBook(id)       { return await this.call('delete', {sheet:'Books', key:id}) },
 
@@ -1463,9 +1480,10 @@ async function syncFromCloud() {
     if (Array.isArray(result.books) && result.books.length) {
       const bkData = result.books.filter(r => r[0] && r[0] !== 'id');
       if(bkData.length) LS.setBooks(bkData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
-        id:r[0], name:r[1], author:r[2]||'', subject:r[3]||'',
-        category:r[4]||'', wholesale:Number(r[5])||0,
-        retail:Number(r[6])||0, stock:Number(r[7])||0, alert:Number(r[8])||10
+        id:r[0], name:r[1], author:r[2]||'', lang:r[3]||'',
+        subject:r[4]||'', category:r[5]||'',
+        wholesale:Number(r[6])||0, retail:Number(r[7])||0,
+        stock:Number(r[8])||0, alert:Number(r[9])||10
       }));
     }
     if (Array.isArray(result.customers) && result.customers.length) {
@@ -2103,14 +2121,33 @@ function delLedger(c,book){if(!confirm('Delete entry?'))return;LS.setInv(LS.inv(
 // ===== CATALOG =====
 function openBookModal(id){
   document.getElementById('editBookId').value=id||'';
-  if(id){const b=LS.books().find(x=>x.id==id)||{};document.getElementById('bName').value=b.name||'';document.getElementById('bWs').value=b.wholesale||'';document.getElementById('bRet').value=b.retail||'';document.getElementById('bStock').value=b.stock||'';document.getElementById('bAlert').value=b.alert||10;document.getElementById('bCat').value=b.category||'';document.getElementById('bAuthor').value=b.author||'';document.getElementById('bSubject').value=b.subject||'';}
-  else{['bName','bWs','bRet','bStock','bCat','bAuthor','bSubject'].forEach(x=>document.getElementById(x).value='');document.getElementById('bAlert').value=10;}
+  if(id){const b=LS.books().find(x=>x.id==id)||{};document.getElementById('bName').value=b.name||'';document.getElementById('bWs').value=b.wholesale||'';document.getElementById('bRet').value=b.retail||'';document.getElementById('bStock').value=b.stock||'';document.getElementById('bAlert').value=b.alert||10;document.getElementById('bCat').value=b.category||'';document.getElementById('bAuthor').value=b.author||'';const bLang=document.getElementById('bLang');if(bLang)bLang.value=b.lang||'';const bSub=document.getElementById('bSubject');if(bSub){if(b.subject&&!Array.from(bSub.options).find(o=>o.value===b.subject)){bSub.value='custom';document.getElementById('bSubjectCustom').style.display='block';document.getElementById('bSubjectCustom').value=b.subject;}else{bSub.value=b.subject||'';}}}
+  else{['bName','bWs','bRet','bStock','bCat','bAuthor','bSubject','bLang','bSubjectCustom'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});document.getElementById('bAlert').value=10;}
   openModal('bookModal');
+}
+function checkCustomSubject(sel){
+  const custom=document.getElementById('bSubjectCustom');
+  if(sel.value==='custom'){custom.style.display='block';custom.focus();}
+  else{custom.style.display='none';custom.value='';}
 }
 function saveBook(){
   const name=document.getElementById('bName').value.trim();if(!name){notify('Book name required','err');return}
   const id=document.getElementById('editBookId').value;
-  const book={id:id||Date.now(),name,wholesale:Number(document.getElementById('bWs').value)||0,retail:Number(document.getElementById('bRet').value)||0,stock:Number(document.getElementById('bStock').value)||0,alert:Number(document.getElementById('bAlert').value)||10,category:document.getElementById('bCat').value.trim(),author:document.getElementById('bAuthor').value.trim(),subject:document.getElementById('bSubject').value.trim()};
+  const subjectEl=document.getElementById('bSubject');
+  const customSubEl=document.getElementById('bSubjectCustom');
+  const subject=subjectEl.value==='custom'?customSubEl.value.trim():subjectEl.value.trim();
+  const book={
+    id:id||Date.now(),
+    name,
+    author:document.getElementById('bAuthor').value.trim(),
+    lang:document.getElementById('bLang').value.trim(),
+    subject:subject,
+    category:document.getElementById('bCat').value.trim(),
+    wholesale:Number(document.getElementById('bWs').value)||0,
+    retail:Number(document.getElementById('bRet').value)||0,
+    stock:Number(document.getElementById('bStock').value)||0,
+    alert:Number(document.getElementById('bAlert').value)||10
+  };
   let bks=LS.books();if(id)bks=bks.map(b=>b.id==id?book:b);else bks.push(book);LS.setBooks(bks);
   if(CLOUD.isConnected()) CLOUD.saveBook(book).then(()=>setSyncStatus('ok'));
   closeModal('bookModal');loadCatalog();addLog('Book '+(id?'Updated':'Added'),name);notify('✅ Book saved!');
@@ -2121,7 +2158,8 @@ function loadCatalog(){
   books.forEach(b=>{const low=(b.stock||0)<=(b.alert||10);const row=tbody.insertRow();
     const catBadge=b.category==='جامعہ اکل کوا'?`<span style="background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📗 جامعہ</span>`:b.category==='بیرون جامعہ'?`<span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📘 بیرون</span>`:`<span style="color:#6b7280;font-size:11px">${b.category||'—'}</span>`;
     const subBadge=b.subject?`<span style="background:#fef3c7;color:#b45309;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">📚 ${b.subject}</span>`:'<span style="color:#6b7280;font-size:11px">—</span>';
-    row.innerHTML=`<td style="text-align:left;padding-left:11px"><strong>${b.name}</strong></td><td style="text-align:left;font-size:12px">${b.author||'—'}</td><td>${subBadge}</td><td>₹${b.wholesale||0}</td><td>₹${b.retail||0}</td><td>${low?`<span class="tag tag-red">⚠️ ${b.stock}</span>`:`<span class="tag tag-green">${b.stock}</span>`}</td><td>${b.alert||10}</td><td>${catBadge}</td><td class="np"><button class="btn bo bsm" onclick="openBookModal(${b.id})">✏️</button></td><td class="np"><button class="btn br bsm" onclick="delBook(${b.id})">🗑️</button></td>`});
+    const langBadge=b.lang?`<span style="background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700">${b.lang}</span>`:'<span style="color:#6b7280;font-size:11px">—</span>';
+    row.innerHTML=`<td style="text-align:left;padding-left:11px"><strong>${b.name}</strong></td><td style="text-align:left;font-size:12px">${b.author||'—'}</td><td>${langBadge}</td><td>${subBadge}</td><td>₹${b.wholesale||0}</td><td>₹${b.retail||0}</td><td>${low?`<span class="tag tag-red">⚠️ ${b.stock}</span>`:`<span class="tag tag-green">${b.stock}</span>`}</td><td>${b.alert||10}</td><td>${catBadge}</td><td class="np"><button class="btn bo bsm" onclick="openBookModal(${b.id})">✏️</button></td><td class="np"><button class="btn br bsm" onclick="delBook(${b.id})">🗑️</button></td>`});
 }
 function delBook(id){if(!confirm('Delete?'))return;LS.setBooks(LS.books().filter(b=>b.id!=id));if(CLOUD.isConnected())CLOUD.deleteBook(id).then(()=>setSyncStatus('ok'));loadCatalog();notify('Deleted')}
 function searchCatalog(t){t=t.toLowerCase();document.querySelectorAll('#catalogBody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(t)?'':'none')}
