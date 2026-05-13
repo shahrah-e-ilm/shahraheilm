@@ -523,7 +523,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.6 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.7 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -1381,7 +1381,7 @@ const CLOUD = {
   },
 
   // Invoice
-  async saveInvoice(inv)     { return await this.call('save', {sheet:'Invoices', key:inv.number, row:Object.values(inv)}) },
+  async saveInvoice(inv)     { return await this.call('save', {sheet:'Invoices', key:inv.number, row:[inv.number,inv.date,inv.customer,inv.address||'',inv.mobile||'',inv.invCategory||'',inv.payment||'Cash',inv.total||0,inv.transport||0,inv.packing||0,inv.discount||0,inv.paidAmount||0,inv.remaining||0,inv.cheque||'',JSON.stringify(inv.items||[]),JSON.stringify(inv.payments||[])]}) },
   async getInvoices(filter)  { return await this.call('getAll') },
   async deleteInvoice(num)   { return await this.call('delete', {sheet:'Invoices', key:num}) },
 
@@ -1391,7 +1391,7 @@ const CLOUD = {
   async deleteBook(id)       { return await this.call('delete', {sheet:'Books', key:id}) },
 
   // Customers
-  async saveCustomer(cust)   { return await this.call('save', {sheet:'Customers', key:cust.id, row:Object.values(cust)}) },
+  async saveCustomer(cust)   { return await this.call('save', {sheet:'Customers', key:cust.id, row:[cust.id,cust.name,cust.phone||'',cust.address||'',cust.notes||'']}) },
   async getCustomers()       { return await this.call('getAll') },
   async deleteCustomer(id)   { return await this.call('delete', {sheet:'Customers', key:id}) },
 
@@ -1464,33 +1464,54 @@ async function syncFromCloud() {
   notify('☁️ Cloud سے ڈیٹا load ہو رہا ہے...');
   const result = await CLOUD.call('getAll');
   if (result && result.success) {
+    // INVOICES - merge cloud + local
     if (Array.isArray(result.invoices) && result.invoices.length) {
-      // Filter out header rows and empty rows
-      const invData = result.invoices.filter(r => r[0] && r[0] !== 'number');
-      if(invData.length) LS.setInv(invData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
-        number:r[0], date:r[1], customer:r[2], address:r[3], mobile:r[4],
-        invCategory:r[5], payment:r[6], total:Number(r[7])||0,
-        transport:Number(r[8])||0, packing:Number(r[9])||0,
-        discount:Number(r[10])||0, paidAmount:Number(r[11])||0,
-        remaining:Number(r[12])||0, chequeNo:r[13]||'',
-        items:typeof r[14]==='string'?JSON.parse(r[14]||'[]'):r[14]||[],
-        payments:typeof r[15]==='string'?JSON.parse(r[15]||'[]'):r[15]||[]
-      }));
+      const cloudInvs = result.invoices
+        .filter(r => r[0] && r[0] !== 'number')
+        .map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
+          number:String(r[0]), date:r[1], customer:r[2], address:r[3]||'', mobile:r[4]||'',
+          invCategory:r[5]||'', payment:r[6]||'Cash', total:Number(r[7])||0,
+          transport:Number(r[8])||0, packing:Number(r[9])||0,
+          discount:Number(r[10])||0, paidAmount:Number(r[11])||0,
+          remaining:Number(r[12])||0, cheque:r[13]||'',
+          items:typeof r[14]==='string'?JSON.parse(r[14]||'[]'):(r[14]||[]),
+          payments:typeof r[15]==='string'?JSON.parse(r[15]||'[]'):(r[15]||[])
+        });
+      // Merge: cloud wins for existing, keep local-only
+      const localInvs = LS.inv();
+      const cloudNums = new Set(cloudInvs.map(i=>String(i.number)));
+      const localOnly = localInvs.filter(i=>!cloudNums.has(String(i.number)));
+      const merged = [...cloudInvs, ...localOnly];
+      if(merged.length > 0) LS.setInv(merged);
     }
+    // BOOKS - merge cloud + local
     if (Array.isArray(result.books) && result.books.length) {
-      const bkData = result.books.filter(r => r[0] && r[0] !== 'id');
-      if(bkData.length) LS.setBooks(bkData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
-        id:r[0], name:r[1], author:r[2]||'', lang:r[3]||'',
-        subject:r[4]||'', category:r[5]||'',
-        wholesale:Number(r[6])||0, retail:Number(r[7])||0,
-        stock:Number(r[8])||0, alert:Number(r[9])||10
-      }));
+      const cloudBks = result.books
+        .filter(r => r[0] && r[0] !== 'id')
+        .map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
+          id:r[0], name:r[1], author:r[2]||'', lang:r[3]||'',
+          subject:r[4]||'', category:r[5]||'',
+          wholesale:Number(r[6])||0, retail:Number(r[7])||0,
+          stock:Number(r[8])||0, alert:Number(r[9])||10
+        });
+      const localBks = LS.books();
+      const cloudIds = new Set(cloudBks.map(b=>String(b.id)));
+      const localOnly = localBks.filter(b=>!cloudIds.has(String(b.id)));
+      const merged = [...cloudBks, ...localOnly];
+      if(merged.length > 0) LS.setBooks(merged);
     }
+    // CUSTOMERS - merge
     if (Array.isArray(result.customers) && result.customers.length) {
-      const cuData = result.customers.filter(r => r[0] && r[0] !== 'id');
-      if(cuData.length) LS.setCusts(cuData.map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
-        id:r[0], name:r[1], phone:r[2]||'', address:r[3]||'', notes:r[4]||''
-      }));
+      const cloudCusts = result.customers
+        .filter(r => r[0] && r[0] !== 'id')
+        .map(r => typeof r === 'object' && !Array.isArray(r) ? r : {
+          id:r[0], name:r[1], phone:r[2]||'', address:r[3]||'', notes:r[4]||''
+        });
+      const localCusts = LS.custs();
+      const cloudIds = new Set(cloudCusts.map(c=>String(c.id)));
+      const localOnly = localCusts.filter(c=>!cloudIds.has(String(c.id)));
+      const merged = [...cloudCusts, ...localOnly];
+      if(merged.length > 0) LS.setCusts(merged);
     }
   }
   loadSaved(); loadDash(); loadCredit(); loadCatalog(); loadCustomers();
