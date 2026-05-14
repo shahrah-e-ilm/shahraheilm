@@ -523,7 +523,7 @@ tbody input:focus{background:#e4e0d8;border-radius:2px}
   <kbd>Ctrl+S</kbd> Save &nbsp; <kbd>Ctrl+N</kbd> New &nbsp; <kbd>Ctrl+P</kbd> Print &nbsp; <kbd>Ctrl+D</kbd> Duplicate &nbsp; <kbd>Esc</kbd> Close
 </div>
 <!-- Version badge -->
-<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v9.9 ☁️ Cloud</div>
+<div style="position:fixed;bottom:16px;left:16px;font-size:10px;color:#94a3b8;z-index:100;font-weight:600">v10.1 ☁️ Cloud</div>
 
 <!-- RECEIPT MODAL -->
 <div class="modal" id="receiptModal">
@@ -1342,10 +1342,7 @@ window.addEventListener('load', function(){
   } else {
     // صرف invoice number اور date set کریں بغیر data load کیے
     const el=document.getElementById('invoiceNo');
-    if(el&&!el.value){
-      const lastNum=Number(localStorage.getItem('invCounter')||0);
-      el.value='SEI-'+String(lastNum+1).padStart(4,'0');
-    }
+    if(el&&!el.value){el.value=genNo(false);}
     const d=document.getElementById('date');
     if(d&&!d.value)d.value=new Date().toISOString().split('T')[0];
   }
@@ -1759,7 +1756,20 @@ function showTab(evt,id){
 
 // ===== INVOICE NO =====
 let curEdit=null;
-function genNo(inc=true){let c=Number(localStorage.getItem('invCounter')||0);if(inc)c++;localStorage.setItem('invCounter',c);return 'SEI-'+String(c).padStart(4,'0')}
+function genNo(inc=true){
+  // موجودہ invoices سے سب سے بڑا نمبر ڈھونڈیں
+  const existing=LS.inv();
+  let maxNum=Number(localStorage.getItem('invCounter')||0);
+  existing.forEach(inv=>{
+    const n=Number((inv.number||'').replace('SEI-',''))||0;
+    if(n>maxNum)maxNum=n;
+  });
+  // inc=true صرف save کے وقت — نمبر بڑھائیں
+  // inc=false صرف display کے لیے — اگلا نمبر دکھائیں
+  const nextNum = maxNum + 1;
+  if(inc) localStorage.setItem('invCounter', nextNum);
+  return 'SEI-'+String(nextNum).padStart(4,'0');
+}
 
 // ===== INIT =====
 function initApp(){
@@ -1772,7 +1782,7 @@ function initApp(){
     }
   }catch(e){}
   const el=document.getElementById('invoiceNo');
-  if(el&&!el.value){const saved=LS.inv();const lastNum=Number(localStorage.getItem('invCounter')||0);if(lastNum===0&&saved.length===0){el.value=genNo(true);}else{el.value='SEI-'+String(lastNum+1).padStart(4,'0');}}
+  if(el&&!el.value){el.value=genNo(false);}
   const d=document.getElementById('date');
   if(d&&!d.value)d.value=new Date().toISOString().split('T')[0];
   addRow();loadSaved();loadCredit();loadDash();calcTotal();
@@ -1965,6 +1975,11 @@ function saveInvoice(){
   }
   // Now deduct new quantities
   items.forEach(it=>{let bks=LS.books();const idx=bks.findIndex(b=>b.name===it.book);if(idx>=0){bks[idx].stock=Math.max(0,(bks[idx].stock||0)-it.qty);LS.setBooks(bks)}});
+  // Invoice number confirm کریں اور counter update کریں
+  const currentNum=Number((inv.number||'').replace('SEI-',''))||0;
+  const savedCounter=Number(localStorage.getItem('invCounter')||0);
+  if(currentNum>savedCounter) localStorage.setItem('invCounter',currentNum);
+
   // STEP 1: پہلے local میں save کریں
   let list=LS.inv().filter(i=>i.number!==inv.number);
   list.push(inv);
@@ -2012,7 +2027,7 @@ function newInvoice(){
   document.getElementById('gstDisp').innerText='0';
   // GST removed - no reset needed
   if(document.getElementById('gstCustom'))document.getElementById('gstCustom').style.display='none';
-  document.getElementById('invoiceNo').value=genNo(true);
+  document.getElementById('invoiceNo').value=genNo(false);
   addRow();window.scrollTo({top:0,behavior:'smooth'});
 }
 
